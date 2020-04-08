@@ -9,7 +9,7 @@ params:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
-	echo = TRUE,
+	echo = params$correction,
 	message = FALSE,
 	warning = FALSE,
 	include = params$correction
@@ -43,5 +43,17 @@ Sinon :
 
 # Exercice
 
-Les données sont disponibles ici : https://github.com/tvroylandt/r-graph/data
-Elles portent sur 
+Les données sont disponibles ici : https://github.com/tvroylandt/r-graph/tree/data/
+Elles portent sur le baromètre du numérique de l'ARCEP, enquête réalisée annuellement par le Crédoc sur l'usage du numérique par les Français, ici de 2007 à 2019.
+
+On va chercher à analyser l'évolution de quelques tendances, à la fois en longitudinal et en répartition sur la dernière année.
+
+Le jeu de données comprend les variables suivantes et est un extrait du fichier principal :
+
+```{r echo=FALSE, include = TRUE}
+
+```
+
+Le dictionnaire des codes complet est disponible dans le même dossier.
+
+## Jeu de données
