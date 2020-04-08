@@ -1,0 +1,47 @@
+---
+title: "Feuille d'exercice"
+author: "Thomas Vroylandt"
+date: "16 avril 2020"
+output: html_document
+params:
+  correction: FALSE
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE,
+	include = params$correction
+)
+```
+
+# Ressources
+
+## Support
+
+Cet atelier se fonde principalement sur la présentation de Thomas Lin Pedersen (actuellement responsable des packages `ggplot2` et de visualisation en général à RStudio) : "Drawing anything with ggplot2", que vous pourrez trouver en ligne ici : https://github.com/thomasp85/ggplot2_workshop/blob/master/presentation.pdf
+
+Elle est disponible en version vidéo (en anglais), en deux parties :
+
+  + https://www.youtube.com/watch?v=h29g21z0a68 ;
+  + https://www.youtube.com/watch?v=0m4yywqNPVY.
+
+## Complémentaires
+
+Une présentation de William Chase sur la façon d'obtenir des graphiques efficaces :
+
+  + Slides : https://www.williamrchase.com/slides/assets/player/KeynoteDHTMLPlayer.html#0 ;
+  + Vidéo (en anglais) : https://resources.rstudio.com/rstudio-conf-2020/the-glamour-of-graphics-william-chase.
+
+Sinon :
+
++ L'aide de `ggplot2` : https://ggplot2.tidyverse.org/.
++ Une introduction par Hadley Wickham, créateur du package : https://ggplot2-book.org/ ;
++ Un livre de recettes pour divers graphs : https://r-graphics.org/.
+
+
+# Exercice
+
+Les données sont disponibles ici : https://github.com/tvroylandt/r-graph/data
+Elles portent sur 
