@@ -4,7 +4,7 @@ author: "Thomas Vroylandt"
 date: "16 avril 2020"
 output: html_document
 params:
-  correction: TRUE
+  correction: FALSE
 ---
 
 ```{r setup, include=FALSE}
@@ -44,13 +44,13 @@ Sinon :
 # Exercice
 
 Les données sont disponibles ici : https://github.com/tvroylandt/r-graph/tree/master/data
-Elles portent sur le baromètre du numérique de l'ARCEP, enquête réalisée annuellement par le Crédoc sur l'usage du numérique par les Français, ici de 2007 à 2019.
+Elles portent sur le baromètre du numérique de l'ARCEP, enquête réalisée annuellement par le Crédoc sur l'usage du numérique par les Français, ici de 2007 à 2018.
 
 On va chercher à analyser l'évolution de quelques tendances, à la fois en longitudinal et en répartition sur la dernière année.
 
 Le jeu de données comprend les variables suivantes et est un extrait du fichier principal :
 
-```{r echo=FALSE, include = TRUE}
+```{r show_data, echo=FALSE, include = TRUE}
 readxl::read_xlsx("data/barometre_credoc_0719_extrait.xlsx",
     col_types = c(
       "numeric",
@@ -77,7 +77,7 @@ Le dictionnaire des codes complet est disponible dans le même dossier.
 
 + On va d'abord charger les packages dont on a besoin.
 
-```{r}
+```{r library}
 library(tidyverse)
 library(readxl)
 library(ggrepel)
@@ -87,7 +87,7 @@ library(patchwork)
 
 + Puis les données, avec les bons formats (deux options : `as.character`/`as.numeric` ou l'argument `col_types`).
 
-```{r}
+```{r import}
 df_barometre <-
   read_xlsx(
     "data/barometre_credoc_0719_extrait.xlsx",
@@ -113,7 +113,7 @@ df_barometre <-
 
 + Et on va les recoder pour obtenir des choses plus propres, en mettant les libellés par exemple pour les variables catégorielles. Cette étape n'est pas obligatoire mais ça va faire plus propre sur les graphs.
 
-```{r}
+```{r recode}
 df_barometre_ok <- df_barometre %>%
   mutate(
     age6fuz = fct_recode(
@@ -183,102 +183,208 @@ df_barometre_ok <- df_barometre %>%
 df_barometre_ok
 ```
 
-## Zoom sur l'année 2019
+## Zoom sur l'année 2018
 
-On va analyser les variables sur l'année 2019.
+On va analyser les variables sur l'année 2018.
 
-+ Filter sur l'année 2019
++ Filter sur l'année 2018
 
-```{r}
-df_barometre_2019 <- df_barometre_ok %>% 
-  filter(annee == 2019)
+```{r filter_2018}
+df_barometre_2018 <- df_barometre_ok %>% 
+  filter(annee == 2018)
 ```
 
 ### Caractéristiques de l'échantillon
 
 + Représenter graphiquement (diagrammes en barre) la composition (non pondérée) de notre échantillon du point de vue du sexe, de l'âge et du niveau de diplôme.
 
-```{r}
+```{r sample_nopond}
+# sexe
+graph_sexe_nopond <- ggplot(df_barometre_2018, aes(x = sexe)) +
+  geom_bar()
 
+graph_sexe_nopond
+
+# age
+ggplot(df_barometre_2018, aes(x = age6fuz)) +
+  geom_bar()
+
+# diplome
+ggplot(df_barometre_2018, aes(x = dipl5)) +
+  geom_bar()
 ```
 
 
 + Faire de même en utilisant les poids. Observer les différences.
 
-```{r}
+```{r sample_pond}
+# sexe
+graph_sexe_pond <- df_barometre_2018 %>% 
+  group_by(sexe) %>% 
+  summarise(nb_ind = sum(pond)) %>% 
+  ggplot(aes(x = sexe, y = nb_ind)) +
+  geom_bar(stat = "identity")
 
+graph_sexe_pond
+
+# age
+ggplot(df_barometre_2018, aes(x = age6fuz, y = pond)) +
+  geom_col()
+
+# diplome
+ggplot(df_barometre_2018, aes(x = dipl5, y = pond)) +
+  geom_bar(stat = "identity")
 ```
-
 
 + Comment peut-on représenter les deux ensemble ?
 
   + Solution 1 : Utiliser les groupes
   
-```{r}
+```{r sexe_grp}
+df_sexe_2018 <- df_barometre_2018 %>% 
+  group_by(sexe) %>% 
+  summarise(nb_ind_pond = sum(pond),
+            nb_ind_nopond = n()) %>% 
+  pivot_longer(-sexe)
 
+df_sexe_2018 %>% 
+  ggplot(aes(x = sexe, y = value, fill = name)) +
+  geom_bar(stat = "identity", position = "dodge")
 ```
 
 
   + Solution 2 : avec des facettes
   
-```{r}
-
+```{r sexe_facet}
+df_sexe_2018 %>% 
+  ggplot(aes(x = sexe, y = value, fill = name)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(vars(name))
 ```
 
   
-  + Solution 3 : avec `patchwork`
+  + Solution 3 : avec `patchwork` : https://patchwork.data-imaginist.com/
 
-```{r}
-
+```{r sexe_patchwork}
+graph_sexe_nopond + graph_sexe_pond
 ```
 
 
 ### Principaux freins à l'utilisation d'internet
 
-On va se concentrer sur cette variable, en fonction du sexe.
+On va se concentrer sur cette variable, en fonction du sexe. On pondère à chaque fois.
 
 + Représenter le diagramme en barre simple de la variable `freinweb` ;
 
-
-```{r}
-
+```{r freinweb}
+df_barometre_2018 %>%
+  ggplot(aes(x = freinweb, y = pond)) +
+  geom_col()
 ```
 
-+ Ajouter le sexe, de la meilleure façon ;
 
-```{r}
++ Gérer les axes et la légende (réordonner ?);
 
-```
-
-+ Gérer les axes et la légende ;
-
-```{r}
-
+```{r freinweb_axe}
+df_barometre_2018 %>%
+  group_by(freinweb) %>%
+  summarise(nb_ind = sum(pond)) %>%
+  ungroup() %>%
+  mutate(freinweb = fct_reorder(freinweb, nb_ind)) %>%
+  ggplot(aes(x = freinweb, y = nb_ind)) +
+  geom_col() +
+  coord_flip() +
+  scale_x_discrete(
+    name = "",
+    labels = function(x) {
+      str_wrap(x, 30)
+    }
+  ) +
+  scale_y_continuous(name = "Nombre de répondants (pondéré)", breaks = seq(0, 1000, 100))
 ```
 
 + Gérer les couleurs pour avoir quelque chose d'harmonieux ;
 
-```{r}
+```{r freinweb_col}
+graph_freinweb <- df_barometre_2018 %>%
+  group_by(freinweb) %>%
+  summarise(nb_ind = sum(pond)) %>%
+  ungroup() %>%
+  mutate(freinweb = fct_reorder(freinweb, nb_ind)) %>%
+  ggplot(aes(x = freinweb, y = nb_ind)) +
+  geom_col(fill = "#ff6961", color = "black") +
+  coord_flip() +
+  scale_x_discrete(
+    name = "",
+    labels = function(x) {
+      str_wrap(x, 30)
+    }
+  ) +
+  scale_y_continuous(name = "Nombre de répondants (pondéré)", breaks = seq(0, 1000, 100))
 
 ```
 
-
 + Gérer le thème pour simplifier ;
 
-```{r}
-
+```{r freinweb_theme}
+graph_freinweb <- graph_freinweb +
+  theme_minimal(base_line_size = 1.1) +
+  theme(panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank(),
+        axis.text = element_text(face = "bold", color = "black"),
+        plot.title = element_text(face = "bold", color = "black"),
+        plot.title.position = "plot")
 ```
 
 + Ajouter un titre et une légence ;
 
-```{r}
-
+```{r freinweb_titre}
+graph_freinweb +
+  labs(title = "Freins à l'utilisation d'internet en 2018",
+       caption = "Source : ARCEP")
 ```
 
 + Exporter le graphique en local avec une bonne résolution.
 
-```{r}
+```{r freinweb_save, eval=FALSE}
+ggsave("freinweb.png", dpi = 400, height = 200, width = 250, units = "mm")
+```
 
++ On peut aussi vouloir faire la répartition de ces motifs par niveau de diplôme.
+
+```{r freinweb_dipl, fig.width = 8}
+df_barometre_2018 %>%
+  group_by(freinweb, dipl5) %>%
+  summarise(nb_ind = sum(pond)) %>%
+  group_by(dipl5) %>%
+  mutate(part_ind = nb_ind / sum(nb_ind) * 100) %>%
+  ungroup() %>%
+  ggplot(aes(x = dipl5, y = part_ind, fill = fct_rev(freinweb))) +
+  geom_col(color = "white") +
+  geom_text(
+    aes(label = round(part_ind, 0)),
+    position = position_stack(vjust = 0.5),
+    size = 8,
+    color = "#ffffff",
+    fontface = "bold"
+  ) +
+  scale_x_discrete(name = "") +
+  scale_fill_brewer(name = "",
+                       palette = "Set1", labels = function(x){str_wrap(x, 30)},
+                       guide = guide_legend(label.position = "bottom", reverse = TRUE)) +
+  coord_flip() +
+  theme_minimal() +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    axis.text = element_text(face = "bold", color = "black"),
+    plot.title = element_text(face = "bold", color = "black"),
+    plot.title.position = "plot",
+    axis.text.x = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.y = element_text(size = 12, color = "black", face = "bold"),
+    legend.position = "bottom"
+  )
 ```
 
 
@@ -288,30 +394,41 @@ On va se concentrer sur cette variable, en fonction du sexe.
 
   + en histogramme ;
 
-```{r}
-
+```{r hr_histo}
+df_barometre_2018 %>%
+  filter(hr_web < 500) %>% 
+  ggplot(aes(x = hr_web, weight = pond)) +
+  geom_histogram(color = "white", bins = 50)
 ```
-  
   
   + en boxplot (ou une variante).
 
-```{r}
-
+```{r hr_boxplot}
+df_barometre_2018 %>%
+  filter(hr_tele < 500) %>% 
+  ggplot(aes(x = hr_tele, weight = pond)) +
+  geom_boxplot()
 ```
-  
 
 + Quelle est la relation des deux ?
 
   + Faire un nuage de point ;
 
-```{r}
-
+```{r point_nuage}
+df_barometre_2018 %>%
+  filter(hr_tele < 500 & hr_web < 500) %>% 
+  ggplot(aes(x = hr_tele, y = hr_web)) +
+  geom_point()
 ```
   
   + Y ajouter la tendance linéaire ;
  
-```{r}
-
+```{r point_smooth}
+df_barometre_2018 %>%
+  filter(hr_tele < 500 & hr_web < 500) %>% 
+  ggplot(aes(x = hr_tele, y = hr_web)) +
+  geom_point() +
+  geom_smooth(formula = "y ~ x", method = "lm", se = FALSE)
 ```
  
   
@@ -319,36 +436,70 @@ On va se concentrer sur cette variable, en fonction du sexe.
   
     + Densité / `alpha` ;
   
-```{r}
+```{r point_dentity}
+# densité
+df_barometre_2018 %>%
+  filter(hr_tele < 500 & hr_web < 500) %>% 
+  ggplot(aes(x = hr_tele, y = hr_web)) +
+  geom_hex(bins = 30) +
+  scale_fill_viridis_c()
 
+# alpha
+df_barometre_2018 %>%
+  filter(hr_tele < 500 & hr_web < 500) %>% 
+  ggplot(aes(x = hr_tele, y = hr_web)) +
+  geom_jitter(alpha = 0.1)
 ```
   
-    + Regrouper et taille des points.
-    
-```{r}
-
-```
-
   + Distinguer les classes d'âge :
   
     + Avec des groupes (`ggforce` par exemple) ;
     
-```{r}
-
+```{r point_ggforce}
+df_barometre_2018 %>%
+  filter(hr_tele < 500 & hr_web < 500) %>% 
+  ggplot(aes(x = hr_tele, y = hr_web, color = age6fuz)) +
+  geom_point() +
+  geom_mark_hull()
 ```
 
     + Avec des facettes.
     
-```{r}
-
+```{r point_facet}
+df_barometre_2018 %>%
+  filter(hr_tele < 500 & hr_web < 500) %>% 
+  ggplot(aes(x = hr_tele, y = hr_web, color = age6fuz)) +
+  geom_point() +
+  facet_wrap(vars(age6fuz))
 ```
 
-+ Ajuster échelles, thème et couleur puis exporter.
 
-```{r}
++ Faire une échelle en log.
 
+```{r point_log}
+df_barometre_2018 %>%
+  filter(hr_tele < 500 & hr_web < 500) %>% 
+  ggplot(aes(x = hr_tele, y = hr_web)) +
+  geom_point() +
+  scale_x_log10() +
+  scale_y_log10()
 ```
 
++ Ajuster échelles, thème et couleur.
+
+```{r point_adjust}
+df_barometre_2018 %>%
+  filter(hr_tele < 500 & hr_web < 500) %>%
+  ggplot(aes(x = hr_tele, y = hr_web)) +
+  geom_bin2d(bins = 30) +
+  scale_x_continuous(name = "Heures passées devant la télé",
+                     breaks = seq(0, 160, 20)) +
+  scale_y_continuous(name = "Heures passées devant internet",
+                     breaks = seq(0, 160, 20)) +
+  scale_fill_viridis_c(name = "Densité", direction = -1) +
+  theme_minimal(base_line_size = 1.1) +
+  labs(caption = "Source : ARCEP")
+```
 
 ## Analyse longitudinale
 
@@ -449,7 +600,7 @@ library(ggtext)
 
 graph_part_evol +
   labs(
-    title = "Accès à <span style = 'color:firebrick;'>internet</span> ou à un <span style = 'color:darkblue;'>téléphone fixe</span>"
+    title = "Accès à <b style = 'color:firebrick;;'>internet</b> ou à un <b style = 'color:darkblue;'>téléphone fixe</b>"
   ) +
   theme(plot.title = element_markdown(),
         plot.title.position = "plot",)
@@ -481,7 +632,7 @@ df_barometre_ok %>%
         panel.grid.minor = element_blank())
 ```
 
-+ Idem mais par classe d'âge ;
++ Idem mais par tranch d'âge ;
 
 ```{r}
 df_barometre_ok %>% 
@@ -510,6 +661,13 @@ Vous pouvez personnaliser votre thème et votre palette de couleur selon votre o
 L'aspect de vos sorties est un enjeu organisationnel. Le design de vos graphiques est important pour véhiculer le bon message.
 
 Une seule règle : faites minimalistes.
+
+Deux ressources :
+
++ https://ggplot2.tidyverse.org/reference/theme.html ;
++ https://ggplot2.tidyverse.org/reference/guide_legend.html.
+
+La personnalisation peut être poussée très loin.
 
 ## Extensions
 
