@@ -32,7 +32,8 @@ df_barometre_select <- df_barometre_init %>%
     US_ACHAT,
     US_FACEB
   ) %>%
-  rename_all(tolower)
+  rename_all(tolower) %>% 
+  mutate(pond = str_replace(pond, ",", "."))
 
 
 # Export ------------------------------------------------------------------

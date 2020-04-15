@@ -4,7 +4,7 @@ author: "Thomas Vroylandt"
 date: "16 avril 2020"
 output: html_document
 params:
-  correction: FALSE
+  correction: TRUE
 ---
 
 ```{r setup, include=FALSE}
@@ -43,7 +43,7 @@ Sinon :
 
 # Exercice
 
-Les données sont disponibles ici : https://github.com/tvroylandt/r-graph/tree/data/
+Les données sont disponibles ici : https://github.com/tvroylandt/r-graph/tree/master/data
 Elles portent sur le baromètre du numérique de l'ARCEP, enquête réalisée annuellement par le Crédoc sur l'usage du numérique par les Français, ici de 2007 à 2019.
 
 On va chercher à analyser l'évolution de quelques tendances, à la fois en longitudinal et en répartition sur la dernière année.
@@ -51,9 +51,478 @@ On va chercher à analyser l'évolution de quelques tendances, à la fois en lon
 Le jeu de données comprend les variables suivantes et est un extrait du fichier principal :
 
 ```{r echo=FALSE, include = TRUE}
-
+readxl::read_xlsx("data/barometre_credoc_0719_extrait.xlsx",
+    col_types = c(
+      "numeric",
+      "text",
+      "numeric",
+      "text",
+      "text",
+      "text",
+      "text",
+      "text",
+      "numeric",
+      "numeric",
+      "text",
+      "text",
+      "text",
+      "text",
+      "text"
+    ))
 ```
 
 Le dictionnaire des codes complet est disponible dans le même dossier.
 
 ## Jeu de données
+
++ On va d'abord charger les packages dont on a besoin.
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(ggrepel)
+library(ggforce)
+library(patchwork)
+```
+
++ Puis les données, avec les bons formats (deux options : `as.character`/`as.numeric` ou l'argument `col_types`).
+
+```{r}
+df_barometre <-
+  read_xlsx(
+    "data/barometre_credoc_0719_extrait.xlsx",
+    col_types = c(
+      "numeric",
+      "text",
+      "numeric",
+      "text",
+      "text",
+      "text",
+      "text",
+      "text",
+      "numeric",
+      "numeric",
+      "text",
+      "text",
+      "text",
+      "text",
+      "text"
+    )
+  )
+```
+
++ Et on va les recoder pour obtenir des choses plus propres, en mettant les libellés par exemple pour les variables catégorielles. Cette étape n'est pas obligatoire mais ça va faire plus propre sur les graphs.
+
+```{r}
+df_barometre_ok <- df_barometre %>%
+  mutate(
+    age6fuz = fct_recode(
+      age6fuz,
+      "12-17 ans" = "1",
+      "18-24 ans" = "2",
+      "25-39 ans" = "3",
+      "40-59 ans" = "4",
+      "60-69 ans" = "5",
+      "70 ans et plus" = "6"
+    ),
+    dipl5 = fct_recode(
+      dipl5,
+      "Aucun, cep" = "1",
+      "BEPC" = "2",
+      "Bac" = "3",
+      "Diplôme du supérieur" = "4",
+      "Individu 12-17 ans" = "5"
+    ),
+    sexe = fct_recode(sexe,
+                      "Homme" = "1",
+                      "Femme" = "2"),
+    freinweb = fct_recode(
+      freinweb,
+      "Internet est trop compliqué à utiliser" = "1",
+      "La qualité du service (temps de réponse, interruptions, etc.) n'est pas satisfaisante" = "2",
+      "Les données personnelles ne sont pas suffisamment protégées sur Internet" = "3",
+      "Cela revient trop cher (équipement à acheter, abonnement, etc.)" = "4",
+      "Internet n'est pas utile pour la vie quotidienne" = "5",
+      "Le service après-vente et l'assistance ne sont pas satisfaisants" = "6",
+      "Aucun de ces freins" = "7",
+      "NSP" = "8"
+    ),
+    internet = fct_recode(
+      internet,
+      "Oui" = "1",
+      "Non" = "2",
+      "NSP" = "3"
+    ),
+    micro = fct_recode(
+      micro,
+      "Oui, un seul" = "1",
+      "Oui, plusieurs" = "2",
+      "Non" = "3",
+      "NSP" = "4"
+    ),
+    tablette = fct_recode(
+      tablette,
+      "Oui" = "1",
+      "Non" = "2",
+      "NSP" = "3"
+    ),
+    telfixe = fct_recode(
+      telfixe,
+      "Oui" = "1",
+      "Non" = "2",
+      "NSP" = "3"
+    ),
+    us_achat = fct_recode(us_achat,
+                          "Oui" = "1",
+                          "Non" = "2"),
+    us_faceb = fct_recode(us_faceb,
+                          "Oui" = "1",
+                          "Non" = "2")
+  )
+
+df_barometre_ok
+```
+
+## Zoom sur l'année 2019
+
+On va analyser les variables sur l'année 2019.
+
++ Filter sur l'année 2019
+
+```{r}
+df_barometre_2019 <- df_barometre_ok %>% 
+  filter(annee == 2019)
+```
+
+### Caractéristiques de l'échantillon
+
++ Représenter graphiquement (diagrammes en barre) la composition (non pondérée) de notre échantillon du point de vue du sexe, de l'âge et du niveau de diplôme.
+
+```{r}
+
+```
+
+
++ Faire de même en utilisant les poids. Observer les différences.
+
+```{r}
+
+```
+
+
++ Comment peut-on représenter les deux ensemble ?
+
+  + Solution 1 : Utiliser les groupes
+  
+```{r}
+
+```
+
+
+  + Solution 2 : avec des facettes
+  
+```{r}
+
+```
+
+  
+  + Solution 3 : avec `patchwork`
+
+```{r}
+
+```
+
+
+### Principaux freins à l'utilisation d'internet
+
+On va se concentrer sur cette variable, en fonction du sexe.
+
++ Représenter le diagramme en barre simple de la variable `freinweb` ;
+
+
+```{r}
+
+```
+
++ Ajouter le sexe, de la meilleure façon ;
+
+```{r}
+
+```
+
++ Gérer les axes et la légende ;
+
+```{r}
+
+```
+
++ Gérer les couleurs pour avoir quelque chose d'harmonieux ;
+
+```{r}
+
+```
+
+
++ Gérer le thème pour simplifier ;
+
+```{r}
+
+```
+
++ Ajouter un titre et une légence ;
+
+```{r}
+
+```
+
++ Exporter le graphique en local avec une bonne résolution.
+
+```{r}
+
+```
+
+
+### Nombre d'heures
+
++ Comment se répartissent le nombre d'heures d'utilisation du web et de la télé ? 
+
+  + en histogramme ;
+
+```{r}
+
+```
+  
+  
+  + en boxplot (ou une variante).
+
+```{r}
+
+```
+  
+
++ Quelle est la relation des deux ?
+
+  + Faire un nuage de point ;
+
+```{r}
+
+```
+  
+  + Y ajouter la tendance linéaire ;
+ 
+```{r}
+
+```
+ 
+  
+  + Est-ce lisible ? Si non, trouver des solutions :
+  
+    + Densité / `alpha` ;
+  
+```{r}
+
+```
+  
+    + Regrouper et taille des points.
+    
+```{r}
+
+```
+
+  + Distinguer les classes d'âge :
+  
+    + Avec des groupes (`ggforce` par exemple) ;
+    
+```{r}
+
+```
+
+    + Avec des facettes.
+    
+```{r}
+
+```
+
++ Ajuster échelles, thème et couleur puis exporter.
+
+```{r}
+
+```
+
+
+## Analyse longitudinale
+
+On va maintenant analyser l'évolution des variables sur quelques années.
+
+### Traitement
+
++ Calculer la part de ceux ayant internet par an, ainsi que pour le téléphone fixe.
+
+```{r}
+df_barometre_long_internet <- df_barometre_ok %>% 
+  group_by(annee, internet) %>% 
+  summarise(nb_ind = sum(pond)) %>% 
+  group_by(annee) %>% 
+  mutate(part_internet = nb_ind /sum(nb_ind) * 100) %>% 
+  ungroup() %>% 
+  filter(internet == "Oui") %>% 
+  select(annee, part_internet)
+
+df_barometre_long_telfixe <- df_barometre_ok %>% 
+  group_by(annee, telfixe) %>% 
+  summarise(nb_ind = sum(pond)) %>% 
+  group_by(annee) %>% 
+  mutate(part_telfixe = nb_ind /sum(nb_ind) * 100) %>% 
+  ungroup() %>% 
+  filter(telfixe == "Oui") %>% 
+  select(annee, part_telfixe)
+
+df_barometre_long <- df_barometre_long_internet %>% 
+  full_join(df_barometre_long_telfixe, by = "annee")
+```
+
+### Série
+
++ Répresenter les deux séries séparement, avec une échelle de 0 à 100 ;
+
+```{r}
+df_barometre_long %>%
+  ggplot(aes(x = annee, y = part_internet)) +
+  geom_line(size = 1.1, color = "firebrick") +
+  scale_x_continuous(name = "", breaks = seq(2007, 2019, 1)) +
+  scale_y_continuous(name = "Part de la population ayant Internet (en %)",
+                     limits = c(0, 100),
+                     breaks = seq(0, 100, 20)) +
+  theme_minimal(base_line_size = 1.1) +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank())
+```
+
+```{r}
+df_barometre_long %>%
+  ggplot(aes(x = annee, y = part_telfixe)) +
+  geom_line(size = 1.1, color = "darkblue") +
+  scale_x_continuous(name = "", breaks = seq(2007, 2019, 1)) +
+  scale_y_continuous(name = "Part de la population ayant un téléphone fixe (en %)",
+                     limits = c(0, 100),
+                     breaks = seq(0, 100, 20)) +
+  theme_minimal(base_line_size = 1.1) +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank())
+```
+
++ Puis ensemble.
+
+```{r}
+graph_part_evol <- df_barometre_long %>%
+  pivot_longer(-annee, names_to = "type_part", values_to = "val") %>%
+  mutate(lab_part = fct_recode(type_part,
+                               "Internet" = "part_internet",
+                               "Tel. fixe" = "part_telfixe")) %>% 
+  ggplot(aes(x = annee, y = val, color = type_part)) +
+  geom_line(size = 1.1) +
+  scale_x_continuous(name = "", breaks = seq(2007, 2019, 1), limits = c(2007, 2020)) +
+  scale_y_continuous(
+    name = "Part de la population",
+    limits = c(0, 100),
+    breaks = seq(0, 100, 20),
+    labels = function(x) {
+      paste0(x, "%")
+    }
+  ) +
+  scale_color_manual(values = c("part_internet" = "firebrick",
+                                "part_telfixe" = "darkblue")) +
+  guides(color = FALSE) +
+  theme_minimal(base_line_size = 1.1) +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank())
+
+graph_part_evol
+```
+
++ Afficher le nom de séries :
+
+  + Dans le titre avec `ggtext` -> cela ne devrait pas marcher chez vous car le package n'est pas encore sur le CRAN ;
+  
+```{r}
+library(ggtext)
+
+graph_part_evol +
+  labs(
+    title = "Accès à <span style = 'color:firebrick;'>internet</span> ou à un <span style = 'color:darkblue;'>téléphone fixe</span>"
+  ) +
+  theme(plot.title = element_markdown(),
+        plot.title.position = "plot",)
+
+```
+  
+  + Dans la légende
+  
+```{r}
+library(directlabels)
+
+graph_part_evol +
+  geom_dl(aes(label = lab_part), method = "last.points")
+```
+
+### Nombre d'heures passé sur internet
+
++ Faire un `boxplot` par année du nombre d'heures passés sur internet ;
+
+```{r}
+df_barometre_ok %>% 
+  filter(!is.na(hr_web) & hr_web < 500) %>% 
+  ggplot(aes(x = as.character(annee), y = hr_web, weight = pond)) +
+  geom_boxplot() +
+  scale_x_discrete(name = "") +
+  scale_y_continuous(name = "Nombre d'heures passées sur Internet", breaks = seq(0, 200, 25)) +
+  theme_minimal(base_line_size = 1.1) +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank())
+```
+
++ Idem mais par classe d'âge ;
+
+```{r}
+df_barometre_ok %>% 
+  filter(!is.na(hr_web) & hr_web < 500) %>% 
+  ggplot(aes(x = as.character(annee), y = hr_web, weight = pond, fill = age6fuz)) +
+  geom_boxplot() +
+  scale_x_discrete(name = "") +
+  scale_y_continuous(name = "Nombre d'heures passées sur Internet", breaks = seq(0, 200, 50)) +
+  scale_fill_viridis_d(name = "Tranche d'âge") +
+  facet_wrap(vars(age6fuz), ncol = 3) +
+  theme_minimal(base_line_size = 1.1) +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor = element_blank())
+```
+
+# Pour poursuivre
+
+## Annotations
+
+Une option de plus est les annotations qui permettent d'ajouter du texte directement sur le graphique pour le travailler davantage : https://ggplot2.tidyverse.org/reference/annotate.html
+
+## Thème
+
+Vous pouvez personnaliser votre thème et votre palette de couleur selon votre organisation. Voir par exemple ce qu'à fait la BBC : https://bbc.github.io/rcookbook/
+
+L'aspect de vos sorties est un enjeu organisationnel. Le design de vos graphiques est important pour véhiculer le bon message.
+
+Une seule règle : faites minimalistes.
+
+## Extensions
+
+De nombreuses extensions de `ggplot2` existent :
+
++ `gghighlight` pour mettre en valeur des données : https://cran.r-project.org/web/packages/gghighlight/vignettes/gghighlight.html ;
++ `gganimate` pour réaliser des graphiques animés : https://gganimate.com/articles/gganimate.html
++ `ggtext`: https://github.com/wilkelab/ggtext ;
++ Et d'autres : http://exts.ggplot2.tidyverse.org/ .
+
+## Graphiques interactifs
+
+D'autres façons de réaliser des graphiques existent, notamment avec plus d'interactivité. Un exemple est `plotly` et la fonction `ggplotly()` qui transcrit (imparfaitement) depuis `ggplot2`
+
++ https://plotly.com/r/
++ https://plotly.com/ggplot2/extending-ggplotly/
